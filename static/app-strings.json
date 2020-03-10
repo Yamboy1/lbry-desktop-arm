@@ -1030,5 +1030,7 @@
   "Transcoding": "Transcoding",
   "Locate FFMPEG so we can transcode.": "Locate FFMPEG so we can transcode.",
   "Optimize and transcode video": "Optimize and transcode video",
-  "Known Tags": "Known Tags"
+  "Known Tags": "Known Tags",
+  "ffmpeg not found": "ffmpeg not found",
+  "Ffmpeg  is correctly configured": "Ffmpeg  is correctly configured",
 }
