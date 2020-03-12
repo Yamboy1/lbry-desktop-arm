@@ -4,7 +4,7 @@ import classnames from 'classnames';
 import React, { Fragment, useEffect, useState } from 'react';
 import { withRouter } from 'react-router';
 import * as CS from 'constants/claim_search';
-import { createNormalizedClaimSearchKey, MATURE_TAGS } from 'lbry-redux';
+import { createNormalizedClaimSearchKey, MATURE_TAGS, DEFAULT_FOLLOWED_TAGS } from 'lbry-redux';
 import { FormField } from 'component/common/form';
 import Button from 'component/button';
 import moment from 'moment';
@@ -33,6 +33,7 @@ type Props = {
   hiddenNsfwMessage?: Node,
   channelIds?: Array<string>,
   tags: Array<string>,
+  defaultTags: Array<string>,
   orderBy?: Array<string>,
   defaultOrderBy?: string,
   freshness?: string,
@@ -49,6 +50,7 @@ type Props = {
   renderProperties?: Claim => Node,
   includeSupportAction?: boolean,
   pageSize?: number,
+  followedTags?: Array<tag>,
 };
 
 function ClaimListDiscover(props: Props) {
@@ -56,6 +58,7 @@ function ClaimListDiscover(props: Props) {
     doClaimSearch,
     claimSearchByQuery,
     tags,
+    defaultTags,
     loading,
     meta,
     channelIds,
@@ -81,6 +84,7 @@ function ClaimListDiscover(props: Props) {
     renderProperties,
     includeSupportAction,
     hideFilter,
+    followedTags,
   } = props;
   const didNavigateForward = history.action === 'PUSH';
   const { search } = location;
@@ -88,9 +92,10 @@ function ClaimListDiscover(props: Props) {
   const [page, setPage] = useState(1);
   const [forceRefresh, setForceRefresh] = useState();
   const [expanded, setExpanded] = useState(false);
-
+  const tagList = (followedTags && followedTags.map(t => t.name)) || DEFAULT_FOLLOWED_TAGS; // change?
   const urlParams = new URLSearchParams(search);
-  const tagsParam = tags || urlParams.get(CS.TAGS_KEY) || null;
+  const tagsParam =
+    (tags && tags.join(',')) || urlParams.get(CS.TAGS_KEY) || (defaultTags && defaultTags.join(',')) || CS.TAGS_ALL;
   const orderParam = orderBy || urlParams.get(CS.ORDER_BY_KEY) || defaultOrderBy || CS.ORDER_BY_TRENDING;
   const freshnessParam = freshness || urlParams.get(CS.FRESH_KEY) || defaultFreshness;
   const contentTypeParam = urlParams.get(CS.CONTENT_KEY);
@@ -101,9 +106,13 @@ function ClaimListDiscover(props: Props) {
   const durationParam = urlParams.get(CS.DURATION_KEY) || null;
 
   const showDuration = !(claimType && claimType === CS.CLAIM_CHANNEL);
-  const showContentType = !(claimType || streamType);
   const isFiltered = () =>
-    Boolean(urlParams.get(CS.FRESH_KEY) || urlParams.get(CS.CONTENT_KEY) || urlParams.get(CS.DURATION_KEY));
+    Boolean(
+      urlParams.get(CS.FRESH_KEY) ||
+        urlParams.get(CS.CONTENT_KEY) ||
+        urlParams.get(CS.DURATION_KEY) ||
+        urlParams.get(CS.TAGS_KEY)
+    );
 
   useEffect(() => {
     if (isFiltered()) setExpanded(true);
@@ -131,7 +140,6 @@ function ClaimListDiscover(props: Props) {
     // no_totals makes it so the sdk doesn't have to calculate total number pages for pagination
     // it's faster, but we will need to remove it if we start using total_pages
     no_totals: true,
-    any_tags: tagsParam || [],
     channel_ids: channelIds || [],
     not_channel_ids:
       // If channelIds were passed in, we don't need not_channel_ids
@@ -211,6 +219,15 @@ function ClaimListDiscover(props: Props) {
     }
   }
 
+  if (tagsParam) {
+    if (tagsParam !== CS.TAGS_ALL && tagsParam !== '') {
+      if (Array.isArray(tagsParam)) {
+        options.any_tags = tagsParam;
+      } else {
+        options.any_tags = tagsParam.split(',') || defaultTags || CS.TAGS_ALL;
+      }
+    }
+  }
   // https://github.com/lbryio/lbry-desktop/issues/3774
   // if (!showReposts) {
   //   if (Array.isArray(options.claim_type)) {
@@ -298,6 +315,13 @@ function ClaimListDiscover(props: Props) {
           newUrlParams.delete(CS.DURATION_KEY);
         } else {
           newUrlParams.set(CS.DURATION_KEY, delta.value);
+        }
+        break;
+      case CS.TAGS_KEY:
+        if (delta.value === CS.TAGS_ALL) {
+          newUrlParams.delete(CS.TAGS_KEY);
+        } else {
+          newUrlParams.set(CS.TAGS_KEY, delta.value);
         }
         break;
     }
@@ -469,6 +493,34 @@ function ClaimListDiscover(props: Props) {
                   </FormField>
                 </div>
               )}
+              {/* TAGS FIELD */}
+              <div className={'claim-search__input-container'}>
+                <FormField
+                  className={classnames('claim-search__dropdown', {
+                    'claim-search__dropdown--selected': tagsParam !== CS.TAGS_ALL && !tagsParam.includes(','),
+                  })}
+                  label={__('Tags')}
+                  type="select"
+                  name="tags"
+                  value={tagsParam || CS.TAGS_ALL}
+                  onChange={e =>
+                    handleChange({
+                      key: CS.TAGS_KEY,
+                      value: e.target.value,
+                    })
+                  }
+                >
+                  {[
+                    CS.TAGS_ALL,
+                    ...tagList,
+                    ...(tagList.includes(tagsParam) ? [] : [tagsParam]), // if they unfollow while filtered, add Other
+                  ].map(tag => (
+                    <option key={tag} value={tag}>
+                      {tagList.includes(tag) || tag === CS.TAGS_ALL ? toCapitalCase(__(tag)) : __('Other')}
+                    </option>
+                  ))}
+                </FormField>
+              </div>
             </div>
           </>
         )}

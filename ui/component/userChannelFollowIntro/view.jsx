@@ -7,10 +7,11 @@ import Nag from 'component/common/nag';
 type Props = {
   subscribedChannels: Array<Subscription>,
   onContinue: () => void,
+  followedTags: Array<Tag>,
 };
 
 function UserChannelFollowIntro(props: Props) {
-  const { subscribedChannels, onContinue } = props;
+  const { subscribedChannels, onContinue, followedTags } = props;
   const followingCount = (subscribedChannels && subscribedChannels.length) || 0;
 
   return (
@@ -27,7 +28,7 @@ function UserChannelFollowIntro(props: Props) {
           defaultFreshness={CS.FRESH_ALL}
           claimType="channel"
           hideBlock
-          hideFilter
+          defaultTags={followedTags.map(tag => tag.name)}
         />
         {followingCount > 0 && (
           <Nag

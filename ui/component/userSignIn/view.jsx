@@ -6,6 +6,7 @@ import UserEmailNew from 'component/userEmailNew';
 import UserEmailVerify from 'component/userEmailVerify';
 import UserFirstChannel from 'component/userFirstChannel';
 import UserChannelFollowIntro from 'component/userChannelFollowIntro';
+import UserTagFollowIntro from 'component/userTagFollowIntro';
 import { DEFAULT_BID_FOR_FIRST_CHANNEL } from 'component/userFirstChannel/view';
 import { rewards as REWARDS, YOUTUBE_STATUSES } from 'lbryinc';
 import UserVerify from 'component/userVerify';
@@ -62,6 +63,7 @@ function UserSignIn(props: Props) {
   const shouldRedirectImmediately = urlParams.get('immediate');
   const [initialSignInStep, setInitialSignInStep] = React.useState();
   const [hasSeenFollowList, setHasSeenFollowList] = usePersistedState('channel-follow-intro', false);
+  const [hasSeenTagsList, setHasSeenTagsList] = usePersistedState('channel-follow-intro', false);
   const hasVerifiedEmail = user && user.has_verified_email;
   const rewardsApproved = user && user.is_reward_approved;
   const hasFetchedReward = useFetched(claimingReward);
@@ -91,6 +93,7 @@ function UserSignIn(props: Props) {
     !hasYoutubeChannels;
   const showYoutubeTransfer = hasVerifiedEmail && hasYoutubeChannels && !isYoutubeTransferComplete;
   const showFollowIntro = hasVerifiedEmail && !hasSeenFollowList;
+  const showTagsIntro = hasVerifiedEmail && !hasSeenTagsList;
   const canHijackSignInFlowWithSpinner = hasVerifiedEmail && !getSyncError && !showFollowIntro;
   const isCurrentlyFetchingSomething = fetchingChannels || claimingReward || syncingWallet || creatingChannel;
   const isWaitingForSomethingToFinish =
@@ -133,6 +136,22 @@ function UserSignIn(props: Props) {
 
           history.replace(url);
           setHasSeenFollowList(true);
+        }}
+      />
+    ),
+    showTagsIntro && (
+      <UserTagFollowIntro
+        onContinue={() => {
+          let url = `/$/${PAGES.AUTH}?reset_scroll=1`;
+          if (redirect) {
+            url += `&redirect=${redirect}`;
+          }
+          if (shouldRedirectImmediately) {
+            url += `&immediate=true`;
+          }
+
+          history.replace(url);
+          setHasSeenTagsList(true);
         }}
       />
     ),

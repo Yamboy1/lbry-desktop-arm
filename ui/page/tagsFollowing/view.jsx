@@ -28,7 +28,7 @@ function DiscoverPage(props: Props) {
         }
         hideCustomization={IS_WEB && !email}
         personalView
-        tags={followedTags.map(tag => tag.name)}
+        defaultTags={followedTags.map(tag => tag.name)}
         meta={
           <Button
             button="link"

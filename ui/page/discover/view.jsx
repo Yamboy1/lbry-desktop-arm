@@ -26,11 +26,11 @@ function TagsPage(props: Props) {
 
   const urlParams = new URLSearchParams(search);
   const claimType = urlParams.get('claim_type');
-  const tagsQuery = urlParams.get('t') || '';
-  const tags = tagsQuery.split(',');
+  const tagsQuery = urlParams.get('t') || null;
+  const tags = tagsQuery ? tagsQuery.split(',') : null;
   // Eventually allow more than one tag on this page
   // Restricting to one to make follow/unfollow simpler
-  const tag = tags[0];
+  const tag = (tags && tags[0]) || null;
 
   const isFollowing = followedTags.map(({ name }) => name).includes(tag);
   let label = isFollowing ? __('Following') : __('Follow');

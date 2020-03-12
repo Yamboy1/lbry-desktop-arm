@@ -6,11 +6,13 @@ import {
   doToggleTagFollow,
   selectBlockedChannels,
   SETTINGS,
+  selectFollowedTags,
 } from 'lbry-redux';
 import { makeSelectClientSetting } from 'redux/selectors/settings';
 import ClaimListDiscover from './view';
 
 const select = state => ({
+  followedTags: selectFollowedTags(state),
   claimSearchByQuery: selectClaimSearchByQuery(state),
   loading: selectFetchingClaimSearch(state),
   showNsfw: makeSelectClientSetting(SETTINGS.SHOW_MATURE)(state),
