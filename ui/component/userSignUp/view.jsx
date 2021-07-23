@@ -18,6 +18,8 @@ import Spinner from 'component/spinner';
 import YoutubeTransferStatus from 'component/youtubeTransferStatus';
 import useFetched from 'effects/use-fetched';
 import Confetti from 'react-confetti';
+import usePrevious from 'effects/use-previous';
+import { SHOW_TAGS_INTRO } from 'config';
 
 const REDIRECT_PARAM = 'redirect';
 const REDIRECT_IMMEDIATELY_PARAM = 'immediate';
@@ -45,7 +47,7 @@ type Props = {
   rewardsAcknowledged: boolean,
   interestedInYoutubeSync: boolean,
   doToggleInterestedInYoutubeSync: () => void,
-  setPrefsReady: () => void,
+  prefsReady: boolean,
 };
 
 function UserSignUp(props: Props) {
@@ -71,7 +73,7 @@ function UserSignUp(props: Props) {
     setClientSetting,
     interestedInYoutubeSync,
     doToggleInterestedInYoutubeSync,
-    setPrefsReady,
+    prefsReady,
   } = props;
   const {
     location: { search, pathname },
@@ -87,13 +89,14 @@ function UserSignUp(props: Props) {
   const isIdentityVerified = user && user.is_identity_verified;
   const passwordSet = user && user.password_set;
   const hasFetchedReward = useFetched(claimingReward);
+  const previousHasVerifiedEmail = usePrevious(hasVerifiedEmail);
   const channelCount = channels ? channels.length : 0;
-  const hasClaimedEmailAward = claimedRewards.some(reward => reward.reward_type === REWARDS.TYPE_CONFIRM_EMAIL);
+  const hasClaimedEmailAward = claimedRewards.some((reward) => reward.reward_type === REWARDS.TYPE_CONFIRM_EMAIL);
   const hasYoutubeChannels = youtubeChannels && Boolean(youtubeChannels.length);
   const isYoutubeTransferComplete =
     hasYoutubeChannels &&
     youtubeChannels.every(
-      channel =>
+      (channel) =>
         channel.transfer_state === YOUTUBE_STATUSES.COMPLETED_TRANSFER ||
         channel.sync_status === YOUTUBE_STATUSES.YOUTUBE_SYNC_ABANDONDED
     );
@@ -116,7 +119,7 @@ function UserSignUp(props: Props) {
       interestedInYoutubeSync);
   const showYoutubeTransfer = hasVerifiedEmail && hasYoutubeChannels && !isYoutubeTransferComplete;
   const showFollowIntro = step === 'channels' || (hasVerifiedEmail && !followingAcknowledged);
-  const showTagsIntro = step === 'tags' || (hasVerifiedEmail && !tagsAcknowledged);
+  const showTagsIntro = SHOW_TAGS_INTRO && (step === 'tags' || (hasVerifiedEmail && !tagsAcknowledged));
   const canHijackSignInFlowWithSpinner = hasVerifiedEmail && !showFollowIntro && !showTagsIntro && !rewardsAcknowledged;
   const isCurrentlyFetchingSomething = fetchingChannels || claimingReward || syncingWallet || creatingChannel;
   const isWaitingForSomethingToFinish =
@@ -134,11 +137,10 @@ function UserSignUp(props: Props) {
   }, [fetchUser]);
 
   React.useEffect(() => {
-    if (hasVerifiedEmail) {
-      setPrefsReady();
+    if (previousHasVerifiedEmail === false && hasVerifiedEmail && prefsReady) {
       setSettingAndSync(SETTINGS.FIRST_RUN_STARTED, true);
     }
-  }, [hasVerifiedEmail, setPrefsReady]);
+  }, [hasVerifiedEmail, previousHasVerifiedEmail, prefsReady]);
 
   React.useEffect(() => {
     // Don't claim the reward if sync is enabled until after a sync has been completed successfully

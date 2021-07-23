@@ -1,18 +1,19 @@
 // @flow
 import React from 'react';
 import classnames from 'classnames';
+import { ENABLE_UI_NOTIFICATIONS } from 'config';
 
 type Props = {
-  unreadCount: number,
+  unseenCount: number,
   inline: boolean,
   user: ?User,
 };
 
 export default function NotificationHeaderButton(props: Props) {
-  const { unreadCount, inline = false, user } = props;
-  const notificationsEnabled = user && user.experimental_ui;
+  const { unseenCount, inline = false, user } = props;
+  const notificationsEnabled = ENABLE_UI_NOTIFICATIONS || (user && user.experimental_ui);
 
-  if (unreadCount === 0 || !notificationsEnabled) {
+  if (unseenCount === 0 || !notificationsEnabled) {
     return null;
   }
 
@@ -22,7 +23,13 @@ export default function NotificationHeaderButton(props: Props) {
         'notification__bubble--inline': inline,
       })}
     >
-      <span className="notification__count">{unreadCount}</span>
+      <span
+        className={classnames('notification__count', {
+          'notification__bubble--small': unseenCount > 9,
+        })}
+      >
+        {unseenCount > 20 ? '20+' : unseenCount}
+      </span>
     </span>
   );
 }

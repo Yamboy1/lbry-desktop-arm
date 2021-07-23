@@ -4,12 +4,12 @@ declare type HomepageObject = {
   options: any,
   route: string,
   title: string,
-}
+};
 
 declare type HomepageData = {
   [string]: HomepageObject,
   default: any => any,
-}
+};
 
 declare type RowDataItem = {
   title: any,
@@ -17,9 +17,11 @@ declare type RowDataItem = {
   help?: any,
   icon?: string,
   extra?: any,
+  pinnedUrls?: Array<string>,
   options?: {
     channelIds?: Array<string>,
-    pageSize: number,
+    limitClaimsPerChannel?: number,
+    pageSize?: number,
   },
   route?: string,
   hideForUnauth?: boolean,

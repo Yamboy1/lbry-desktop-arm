@@ -15,6 +15,10 @@ type Props = {
   fee?: boolean,
   className?: string,
   noFormat?: boolean,
+  size?: number,
+  superChat?: boolean,
+  superChatLight?: boolean,
+  isFiat?: boolean,
 };
 
 class CreditAmount extends React.PureComponent<Props> {
@@ -39,8 +43,11 @@ class CreditAmount extends React.PureComponent<Props> {
       showLBC,
       className,
       noFormat,
+      size,
+      superChat,
+      superChatLight,
+      isFiat,
     } = this.props;
-
     const minimumRenderableAmount = 10 ** (-1 * precision);
     const fullPrice = formatFullPrice(amount, 2);
     const isFree = parseFloat(amount) === 0;
@@ -65,8 +72,10 @@ class CreditAmount extends React.PureComponent<Props> {
         amountText = `+${amountText}`;
       }
 
-      if (showLBC) {
-        amountText = <LbcSymbol postfix={amountText} />;
+      if (showLBC && !isFiat) {
+        amountText = <LbcSymbol postfix={amountText} size={size} />;
+      } else if (showLBC && isFiat) {
+        amountText = <p style={{display: 'inline'}}> ${(Math.round(Number(amountText) * 100) / 100).toFixed(2)}</p>;
       }
 
       if (fee) {
@@ -75,7 +84,13 @@ class CreditAmount extends React.PureComponent<Props> {
     }
 
     return (
-      <span title={fullPrice} className={classnames(className, {})}>
+      <span
+        title={fullPrice}
+        className={classnames(className, {
+          'super-chat': superChat,
+          'super-chat--light': superChatLight,
+        })}
+      >
         <span className="credit-amount">{amountText}</span>
 
         {isEstimate ? (

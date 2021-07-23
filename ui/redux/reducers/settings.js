@@ -2,12 +2,13 @@ import * as ACTIONS from 'constants/action_types';
 import moment from 'moment';
 import { ACTIONS as LBRY_REDUX_ACTIONS, SETTINGS, SHARED_PREFERENCES } from 'lbry-redux';
 import { getSubsetFromKeysArray } from 'util/sync-settings';
-import { UNSYNCED_SETTINGS } from 'config';
+import { getDefaultLanguage } from 'util/default-languages';
+import { UNSYNCED_SETTINGS, SIMPLE_SITE } from 'config';
 
 const { CLIENT_SYNC_KEYS } = SHARED_PREFERENCES;
 const settingsToIgnore = (UNSYNCED_SETTINGS && UNSYNCED_SETTINGS.trim().split(' ')) || [];
 const clientSyncKeys = settingsToIgnore.length
-  ? CLIENT_SYNC_KEYS.filter(k => !settingsToIgnore.includes(k))
+  ? CLIENT_SYNC_KEYS.filter((k) => !settingsToIgnore.includes(k))
   : CLIENT_SYNC_KEYS;
 
 const reducers = {};
@@ -16,7 +17,7 @@ try {
   let appLanguage = window.localStorage.getItem(SETTINGS.LANGUAGE);
   settingLanguage.push(appLanguage);
 } catch (e) {}
-settingLanguage.push(window.navigator.language.slice(0, 2));
+settingLanguage.push(getDefaultLanguage());
 settingLanguage.push('en');
 
 const defaultState = {
@@ -45,7 +46,11 @@ const defaultState = {
     [SETTINGS.HIDE_BALANCE]: false,
     [SETTINGS.OS_NOTIFICATIONS_ENABLED]: true,
     [SETTINGS.AUTOMATIC_DARK_MODE_ENABLED]: false,
+    [SETTINGS.CLOCK_24H]: false,
     [SETTINGS.TILE_LAYOUT]: true,
+    [SETTINGS.VIDEO_THEATER_MODE]: false,
+    [SETTINGS.VIDEO_PLAYBACK_RATE]: 1,
+    [SETTINGS.DESKTOP_WINDOW_ZOOM]: 1,
 
     [SETTINGS.DARK_MODE_TIMES]: {
       from: { hour: '21', min: '00', formattedTime: '21:00' },
@@ -65,7 +70,7 @@ const defaultState = {
     [SETTINGS.AUTOPLAY_NEXT]: true,
     [SETTINGS.FLOATING_PLAYER]: true,
     [SETTINGS.AUTO_DOWNLOAD]: true,
-    [SETTINGS.HIDE_REPOSTS]: false,
+    [SETTINGS.HIDE_REPOSTS]: SIMPLE_SITE,
 
     // OS
     [SETTINGS.AUTO_LAUNCH]: true,
@@ -84,12 +89,12 @@ reducers[ACTIONS.REHYDRATE] = (state, action) => {
   return Object.assign({}, state, { clientSettings });
 };
 
-reducers[ACTIONS.FINDING_FFMPEG_STARTED] = state =>
+reducers[ACTIONS.FINDING_FFMPEG_STARTED] = (state) =>
   Object.assign({}, state, {
     findingFFmpeg: true,
   });
 
-reducers[ACTIONS.FINDING_FFMPEG_COMPLETED] = state =>
+reducers[ACTIONS.FINDING_FFMPEG_COMPLETED] = (state) =>
   Object.assign({}, state, {
     findingFFmpeg: false,
   });
@@ -115,7 +120,7 @@ reducers[ACTIONS.CLIENT_SETTING_CHANGED] = (state, action) => {
   });
 };
 
-reducers[ACTIONS.UPDATE_IS_NIGHT] = state => {
+reducers[ACTIONS.UPDATE_IS_NIGHT] = (state) => {
   const { from, to } = state.clientSettings[SETTINGS.DARK_MODE_TIMES];
   const momentNow = moment();
   const startNightMoment = moment(from.formattedTime, 'HH:mm');
@@ -150,7 +155,7 @@ reducers[LBRY_REDUX_ACTIONS.SHARED_PREFERENCE_SET] = (state, action) => {
   });
 };
 
-reducers[ACTIONS.SYNC_CLIENT_SETTINGS] = state => {
+reducers[ACTIONS.SYNC_CLIENT_SETTINGS] = (state) => {
   const { clientSettings } = state;
   const sharedPreferences = Object.assign({}, state.sharedPreferences);
   const selectedClientSettings = getSubsetFromKeysArray(clientSettings, clientSyncKeys);

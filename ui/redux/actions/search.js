@@ -1,8 +1,11 @@
 // @flow
 import * as ACTIONS from 'constants/action_types';
-import { buildURI, doResolveUris, batchActions } from 'lbry-redux';
-import { makeSelectSearchUris, makeSelectQueryWithOptions, selectSearchValue } from 'redux/selectors/search';
+import { SEARCH_OPTIONS } from 'constants/search';
+import { buildURI, doResolveUris, batchActions, isURIValid, makeSelectClaimForUri } from 'lbry-redux';
+import { makeSelectSearchUris, selectSearchValue } from 'redux/selectors/search';
 import handleFetchResponse from 'util/handle-fetch';
+import { getSearchQueryString } from 'util/query-params';
+import { SIMPLE_SITE } from 'config';
 
 type Dispatch = (action: any) => any;
 type GetState = () => { search: SearchState };
@@ -39,12 +42,17 @@ export const doSearch = (rawQuery: string, searchOptions: SearchOptions) => (
 
   const state = getState();
 
-  let queryWithOptions = makeSelectQueryWithOptions(query, searchOptions)(state);
+  const queryWithOptions = getSearchQueryString(query, searchOptions);
+
+  const size = searchOptions.size;
+  const from = searchOptions.from;
 
   // If we have already searched for something, we don't need to do anything
   const urisForQuery = makeSelectSearchUris(queryWithOptions)(state);
   if (urisForQuery && !!urisForQuery.length) {
-    return;
+    if (!size || !from || from + size < urisForQuery.length) {
+      return;
+    }
   }
 
   dispatch({
@@ -57,7 +65,7 @@ export const doSearch = (rawQuery: string, searchOptions: SearchOptions) => (
       const uris = [];
       const actions = [];
 
-      data.forEach(result => {
+      data.forEach((result) => {
         if (result) {
           const { name, claimId } = result;
           const urlObj: LbryUrlObj = {};
@@ -71,7 +79,9 @@ export const doSearch = (rawQuery: string, searchOptions: SearchOptions) => (
           }
 
           const url = buildURI(urlObj);
-          uris.push(url);
+          if (isURIValid(url)) {
+            uris.push(url);
+          }
         }
       });
 
@@ -81,12 +91,14 @@ export const doSearch = (rawQuery: string, searchOptions: SearchOptions) => (
         type: ACTIONS.SEARCH_SUCCESS,
         data: {
           query: queryWithOptions,
+          from: from,
+          size: size,
           uris,
         },
       });
       dispatch(batchActions(...actions));
     })
-    .catch(e => {
+    .catch(() => {
       dispatch({
         type: ACTIONS.SEARCH_FAIL,
       });
@@ -108,6 +120,27 @@ export const doUpdateSearchOptions = (newOptions: SearchOptions, additionalOptio
   if (searchValue) {
     // After updating, perform a search with the new options
     dispatch(doSearch(searchValue, additionalOptions));
+  }
+};
+
+export const doFetchRecommendedContent = (uri: string, mature: boolean) => (dispatch: Dispatch, getState: GetState) => {
+  const state = getState();
+  const claim = makeSelectClaimForUri(uri)(state);
+
+  if (claim && claim.value && claim.claim_id) {
+    const options: SearchOptions = { size: 20, related_to: claim.claim_id, isBackgroundSearch: true };
+    if (!mature) {
+      options['nsfw'] = false;
+    }
+
+    if (SIMPLE_SITE) {
+      options[SEARCH_OPTIONS.CLAIM_TYPE] = SEARCH_OPTIONS.INCLUDE_FILES;
+      options[SEARCH_OPTIONS.MEDIA_VIDEO] = true;
+    }
+    const { title } = claim.value;
+    if (title && options) {
+      dispatch(doSearch(title, options));
+    }
   }
 };
 

@@ -1,5 +1,5 @@
 // @flow
-import { ENABLE_CREATOR_REACTIONS } from 'config';
+import { ENABLE_CREATOR_REACTIONS, SIMPLE_SITE } from 'config';
 import * as ICONS from 'constants/icons';
 import * as PAGES from 'constants/pages';
 import * as REACTION_TYPES from 'constants/reactions';
@@ -16,13 +16,13 @@ type Props = {
   commentId: string,
   pendingCommentReacts: Array<string>,
   claimIsMine: boolean,
-  activeChannel: string,
+  activeChannelId: ?string,
   claim: ?ChannelClaim,
   doToast: ({ message: string }) => void,
 };
 
 export default function CommentReactions(props: Props) {
-  const { myReacts, othersReacts, commentId, react, claimIsMine, claim, activeChannel, doToast } = props;
+  const { myReacts, othersReacts, commentId, react, claimIsMine, claim, activeChannelId, doToast } = props;
   const {
     push,
     location: { pathname },
@@ -31,14 +31,14 @@ export default function CommentReactions(props: Props) {
     claim &&
     claimIsMine &&
     (claim.value_type === 'channel'
-      ? claim.name === activeChannel
-      : claim.signing_channel && claim.signing_channel.name === activeChannel);
+      ? claim.claim_id === activeChannelId
+      : claim.signing_channel && claim.signing_channel.claim_id === activeChannelId);
   const authorUri =
     claim && claim.value_type === 'channel'
       ? claim.canonical_url
       : claim && claim.signing_channel && claim.signing_channel.canonical_url;
 
-  const getCountForReact = type => {
+  const getCountForReact = (type) => {
     let count = 0;
     if (othersReacts && othersReacts[type]) {
       count += othersReacts[type];
@@ -50,9 +50,19 @@ export default function CommentReactions(props: Props) {
   };
 
   const creatorLiked = getCountForReact(REACTION_TYPES.CREATOR_LIKE) > 0;
+  const likeIcon = SIMPLE_SITE
+    ? myReacts.includes(REACTION_TYPES.LIKE)
+      ? ICONS.FIRE_ACTIVE
+      : ICONS.FIRE
+    : ICONS.UPVOTE;
+  const dislikeIcon = SIMPLE_SITE
+    ? myReacts.includes(REACTION_TYPES.DISLIKE)
+      ? ICONS.SLIME_ACTIVE
+      : ICONS.SLIME
+    : ICONS.DOWNVOTE;
 
   function handleCommentLike() {
-    if (activeChannel) {
+    if (activeChannelId) {
       react(commentId, REACTION_TYPES.LIKE);
     } else {
       promptForChannel();
@@ -60,7 +70,7 @@ export default function CommentReactions(props: Props) {
   }
 
   function handleCommentDislike() {
-    if (activeChannel) {
+    if (activeChannelId) {
       react(commentId, REACTION_TYPES.DISLIKE);
     } else {
       promptForChannel();
@@ -77,7 +87,7 @@ export default function CommentReactions(props: Props) {
       <Button
         requiresAuth={IS_WEB}
         title={__('Upvote')}
-        icon={ICONS.UPVOTE}
+        icon={likeIcon}
         className={classnames('comment__action', {
           'comment__action--active': myReacts && myReacts.includes(REACTION_TYPES.LIKE),
         })}
@@ -87,7 +97,7 @@ export default function CommentReactions(props: Props) {
       <Button
         requiresAuth={IS_WEB}
         title={__('Downvote')}
-        icon={ICONS.DOWNVOTE}
+        icon={dislikeIcon}
         className={classnames('comment__action', {
           'comment__action--active': myReacts && myReacts.includes(REACTION_TYPES.DISLIKE),
         })}
@@ -105,7 +115,9 @@ export default function CommentReactions(props: Props) {
           className={classnames('comment__action comment__action--creator-like')}
           onClick={() => react(commentId, REACTION_TYPES.CREATOR_LIKE)}
         >
-          {creatorLiked && <ChannelThumbnail uri={authorUri} className="comment__creator-like" />}
+          {creatorLiked && (
+            <ChannelThumbnail xsmall uri={authorUri} hideStakedIndicator className="comment__creator-like" />
+          )}
         </Button>
       )}
     </>

@@ -8,7 +8,7 @@ import ClaimTilesDiscover from 'component/claimTilesDiscover';
 import ClaimListDiscover from 'component/claimListDiscover';
 import * as CS from 'constants/claim_search';
 import { toCapitalCase } from 'util/string';
-import { SIMPLE_SITE } from 'config';
+import { CUSTOM_HOMEPAGE, SIMPLE_SITE } from 'config';
 
 const MORE_CHANNELS_ANCHOR = 'MoreChannels';
 
@@ -28,12 +28,16 @@ type ChannelsFollowingItem = {
 
 function ChannelsFollowingDiscover(props: Props) {
   const { followedTags, subscribedChannels, blockedChannels, homepageData } = props;
-  const { PRIMARY_CONTENT_CHANNEL_IDS } = homepageData;
+  const { PRIMARY_CONTENT } = homepageData;
+  let channelIds;
+  if (PRIMARY_CONTENT && CUSTOM_HOMEPAGE) {
+    channelIds = PRIMARY_CONTENT.channelIds;
+  }
   let rowData: Array<ChannelsFollowingItem> = [];
   const notChannels = subscribedChannels
     .map(({ uri }) => uri)
     .concat(blockedChannels)
-    .map(uri => uri.split('#')[1]);
+    .map((uri) => uri.split('#')[1]);
 
   rowData.push({
     title: 'Top Channels Of All Time',
@@ -42,16 +46,6 @@ function ChannelsFollowingDiscover(props: Props) {
       pageSize: 12,
       claimType: 'channel',
       orderBy: ['effective_amount'],
-    },
-  });
-
-  rowData.push({
-    title: 'Latest From @lbrycast',
-    link: `/@lbrycast:4`,
-    options: {
-      orderBy: ['release_time'],
-      pageSize: 8,
-      channelIds: ['4c29f8b013adea4d5cca1861fb2161d5089613ea'],
     },
   });
 
@@ -84,12 +78,12 @@ function ChannelsFollowingDiscover(props: Props) {
       link: `/$/${PAGES.TAGS_FOLLOWING}?claim_type=channel`,
       options: {
         claimType: 'channel',
-        tags: followedTags.map(tag => tag.name),
+        tags: followedTags.map((tag) => tag.name),
       },
     });
   }
 
-  const rowDataWithGenericOptions = rowData.map(row => {
+  const rowDataWithGenericOptions = rowData.map((row) => {
     return {
       ...row,
       options: {
@@ -101,36 +95,41 @@ function ChannelsFollowingDiscover(props: Props) {
 
   return (
     <Page>
-      {rowDataWithGenericOptions.map(({ title, link, help, options = {} }) => (
-        <div key={title} className="claim-grid__wrapper">
-          <h1 className="section__actions">
-            {link ? (
-              <Button
-                className="claim-grid__title"
-                button="link"
-                navigate={link}
-                iconRight={ICONS.ARROW_RIGHT}
-                label={__(title)}
-              />
-            ) : (
-              <span className="claim-grid__title">{__(title)}</span>
-            )}
-            {help}
-          </h1>
+      {!SIMPLE_SITE &&
+        rowDataWithGenericOptions.map(({ title, link, help, options = {} }) => (
+          <div key={title} className="claim-grid__wrapper">
+            <h1 className="section__actions">
+              {link ? (
+                <Button
+                  className="claim-grid__title"
+                  button="link"
+                  navigate={link}
+                  iconRight={ICONS.ARROW_RIGHT}
+                  label={__(title)}
+                />
+              ) : (
+                <span className="claim-grid__title">{__(title)}</span>
+              )}
+              {help}
+            </h1>
 
-          <ClaimTilesDiscover {...options} />
-        </div>
-      ))}
-      <h1 id={MORE_CHANNELS_ANCHOR} className="claim-grid__title">
-        {__('More Channels')}
-      </h1>
-      {/* odysee: claimIds = PRIMARY_CONTENT_CHANNEL_IDS if simplesite CLD */}
+            <ClaimTilesDiscover {...options} />
+          </div>
+        ))}
+      {!SIMPLE_SITE && (
+        <h1 id={MORE_CHANNELS_ANCHOR} className="claim-grid__title">
+          {__('More Channels')}
+        </h1>
+      )}
       <ClaimListDiscover
         defaultOrderBy={CS.ORDER_BY_TRENDING}
         defaultFreshness={CS.FRESH_ALL}
         claimType={CS.CLAIM_CHANNEL}
-        claimIds={SIMPLE_SITE ? PRIMARY_CONTENT_CHANNEL_IDS : undefined}
+        claimIds={CUSTOM_HOMEPAGE && channelIds ? channelIds : undefined}
         scrollAnchor={MORE_CHANNELS_ANCHOR}
+        maxPages={SIMPLE_SITE ? 3 : undefined}
+        hideFilters={SIMPLE_SITE}
+        header={SIMPLE_SITE ? <h1 className="section__title">{__('Moon cheese is an acquired taste')}</h1> : undefined}
       />
     </Page>
   );
